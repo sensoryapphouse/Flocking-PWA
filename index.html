@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Flocking - exploring with touch</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Flocking PWA">
+    <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon-iphone-60x60.png">
+<link rel="apple-touch-icon" sizes="60x60" href="images/apple-touch-icon-ipad-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-iphone-retina-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="images/apple-touch-icon-ipad-retina-152x152.png">
+    <link href="css/index.css" rel="stylesheet" />
+    <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+    <script type="text/javascript" src="webgl-utils.js"></script>
+    <script src="gamepads.min.js"></script>
+    <script type="text/javascript" src="main.js"></script>
+    <script src="sketch.min.js"></script>
+    <script src="tinycolor-min.js"></script>
+    <script id="shader-1-fs" type="f">
+        precision highp float;
+uniform vec2 resolution;
+uniform vec2 mouse;
+uniform float time;
+uniform float Param1;
+uniform float Param2;
+uniform float Param3;
+uniform float Param4;
+#define M_PI 3.1415926535897932384626433832795
+
+#define f length(fract(q*=m*=.6+.1*d++)-.5)
+vec3 water1()
+{
+    float d = 0.;
+    vec3 q = vec3(gl_FragCoord.xy / resolution.yy-13., time*.2);
+    mat3 m = mat3(-2,-1,2, 3,-2,1, -1,1,3);
+    vec3 col = vec3(pow(min(min(f,f),f), 7.)*40.);
+    col = clamp(col + vec3(0., 0.35, 0.5), 0.0, 1.0);
+    return vec3(col);
+}
+
+float wave(vec2 p){float t=time,v=sin(p.x+t*3.+sin((p.y-t*.1)*.3)*1.5+sin(p.y*.21)*.4+sin((p.y+t*2.11)*2.21)*.153+sin(p.y*5.13)*.05);return pow(1.-abs(v),2.9);}
+const mat2 rot=mat2(.17,-.98,.98,.17);
+vec3 water2(){
+	vec2 uv=(gl_FragCoord.xy*2.-resolution.xy)/min(resolution.x,resolution.y);
+	vec2 p=uv*vec2(3.,4.);p-=time*.5-100.;
+	float v=uv.y*.5,d=1.;for(int i=0;i<7;i++){p+=time*.2;p*=rot;v+=wave(p)*d;d*=.8;p*=1.19;}v=v*v*v*.09;
+	vec3 c=mix(vec3(.1,.45,.5),vec3(.5,1.,.85),v);
+	c*=1.-length(uv+vec2(0,2.5))*.1;
+	return(c);
+}
+
+#define MAX_ITER 8
+vec3 water3() {
+	vec2 p = gl_FragCoord.xy/resolution.xy*8.0- vec2(20.0);
+	vec2 i = p;
+	float c = 1.0;
+	float inten = .02;
+
+	for (int n = 0; n < MAX_ITER; n++) 
+	{
+		float t = time + c*c/40.-p.x*0.2;
+		i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
+		c += 1.0/length(vec2(p.x / (sin(i.x+t)/inten),p.y / (cos(i.y+t)/inten)));
+	}
+	c /= float(MAX_ITER);
+	c = 1.5-sqrt(c);
+	return vec3(c*c*c*c) + vec3(0.0, 0.3, 0.5);
+}
+
+vec3 water4() {
+	vec2 sp = gl_FragCoord.xy/resolution.xy;
+	vec2 p = sp * 15.0 - vec2(20.0);
+	vec2 i = p;
+	float c = 1.0; // brightness; larger -> darker
+	float inten = 0.025; // brightness; larger -> brighter
+	float speed = 1.5; // larger -> slower
+	float speed2 = 3.0; // larger -> slower
+	float freq = 0.8; // ripples
+	float xflow = 1.5; // flow speed in x direction
+	float yflow = 0.0; // flow speed in y direction
+
+	for (int n = 0; n < MAX_ITER; n++) {
+		float t = time * (1.0 - (3.0 / (float(n) + speed)));
+		i = p + vec2(cos(t - i.x * freq) + sin(t + i.y * freq) + (time * xflow), sin(t - i.y * freq) + cos(t + i.x * freq) + (time * yflow));
+		c += 1.0 / length(vec2(p.x / (sin(i.x + t * speed2) / inten), p.y / (cos(i.y + t * speed2) / inten)));
+	}
+	c /= float(MAX_ITER);
+	c = 1.5 - sqrt(c);
+	return vec3(c * c * c * c) + vec3(0.0, 0.4, 0.55);
+}
+
+void main()
+{
+if (Param1 == 1.)
+    gl_FragColor = vec4(water1(), 1.0);
+ else if (Param1 == 2.)
+    gl_FragColor = vec4(water2(), 1.0);
+ else if (Param1 == 3.)
+    gl_FragColor = vec4(water3(), 1.0);
+ else
+    gl_FragColor = vec4(water4(), 1.0);
+ 
+}
+</script>
+    <script id="shader-2-fs" type="f">
+
+        precision lowp float;
+uniform vec2 resolution;
+uniform vec2 mouse;
+uniform float time;
+uniform float Param1;
+uniform float Param2;
+uniform float Param3;
+uniform float Param4;
+
+#define BLADES 30
+
+vec3 rotateX(float a, vec3 v){	return vec3(v.x, cos(a) * v.y + sin(a) * v.z, cos(a) * v.z - sin(a) * v.y);}
+vec3 rotateY(float a, vec3 v){return vec3(cos(a) * v.x + sin(a) * v.z, v.y, cos(a) * v.z - sin(a) * v.x);}
+vec3 rotateZ(float a, vec3 v){return vec3(cos(a) * v.x + sin(a) * v.y, cos(a) * v.y - sin(a) * v.x, v.z);}
+float dither(){return fract(gl_FragCoord.x * 0.482635532 + gl_FragCoord.y * 0.1353412 + time * 100.0) * 0.008;}
+
+vec4 grass(vec2 p, float x)
+{
+	float s = mix(0.7, 2.0, 0.5 + sin(x * 12.0) * 0.5);
+	p.x += pow(1.0 + p.y, 2.0) * 0.1 * cos(x * 0.5 + time);
+	p.x *= s;
+	p.y = (1.0 + p.y) * s - 1.0;
+	float m = 1.0 - smoothstep(0.0, clamp(1.0 - p.y * 1.5, 0.01, 0.6) * 0.2 * s, pow(abs(p.x) * 19.0, 1.5) + p.y - 0.6);
+	return vec4(mix(vec3(0.05, 0.1, 0.0) * 0.8, vec3(0.0, 0.3, 0.0), (p.y + 1.0) * 0.5 + abs(p.x)), m * smoothstep(-1.0, -0.9, p.y));
+}
+
+vec3 backg1(vec3 ro, vec3 rd)
+{
+	float t = (-.0 - ro.y) / rd.y;
+	vec2 tc = ro.xz + rd.xz * t;
+	vec3 horiz = vec3(0.0, 0.2, 0.2) * 0.7;
+	vec3 sky = mix(horiz, vec3(0.1, 0.13, 0.15) * 0.8, dot(rd, vec3(0.0, 1.0, 0.0)));
+	vec3 ground = mix(horiz, vec3(0.04, 0.07, 0.0) * 0.6, pow(max(0.0, dot(rd, vec3(0.0, -1.0, 0.0))), 0.2));
+	return ground*1.3; //mix(sky, ground, step(0.0, t));
+}
+
+vec3 backg2(vec3 ro, vec3 rd)
+{
+	float t = (-.0 - ro.y) / rd.y;
+	vec2 tc = ro.xz + rd.xz * t;
+	vec3 horiz = vec3(0.0, 0.2, 0.2) * 0.7;
+	vec3 sky = mix(horiz, vec3(0.1, 0.13, 0.45) * 0.8, dot(rd, vec3(0.0, 1.0, .0)));
+	return sky/3.;
+}
+
+vec3 backg3(vec3 ro, vec3 rd)
+{
+	float t = (-.0 - ro.y) / rd.y;
+	vec2 tc = ro.xz + rd.xz * t;
+	vec3 horiz = vec3(0.0, 0.2, 0.2) * 0.7;
+	vec3 sky = mix(horiz, vec3(0.1, 0.13, 0.15) * 0.8, dot(rd, vec3(0.0, 1.0, .0)));
+	sky.xy*=.4;
+	return sky;
+}
+
+vec3 backg4(vec3 ro, vec3 rd)
+{
+	float t = (-.0 - ro.y) / rd.y;
+	vec2 tc = ro.xz + rd.xz * t;
+	vec3 horiz = vec3(0.0, 0.2, 0.2) * 0.7;
+	vec3 sky = mix(horiz, vec3(0.1, 0.13, 0.15) * 0.8, dot(rd, vec3(0.0, 1.0, 0.0)));
+	vec3 ground = mix(horiz, vec3(0.04, 0.07, 0.0) * 0.6, pow(max(0.0, dot(rd, vec3(0.0, -1.0, 0.0))), 0.2));
+	return mix(sky, ground, step(0.0, t));
+}
+
+void main( void ) {
+	vec3 ct = vec3(0.0, 1.0, 5.0);
+	vec3 cp = rotateY(cos(time * 0.2) * 0.4, vec3(0.0, 0.6, 0.0));
+	vec3 cw = normalize(cp - ct);
+	vec3 cu = normalize(cross(cw, vec3(0.0, 1.0, 0.0)));
+	vec3 cv = normalize(cross(cu, cw));
+	mat3 rm = mat3(cu, cv, cw);
+	vec2 uv = (gl_FragCoord.xy / resolution.xy) * 2.0 - vec2(1.0);
+	vec2 t = uv;
+	t.x *= resolution.x / resolution.y;
+	vec3 ro = cp, rd = rotateY(sin(time * 0.7) * 0.1, rm * rotateZ(sin(time * 0.15) * 0.1, vec3(t, -1.3)));
+	vec3 fcol;
+    if (Param1 == 0.)
+        fcol = backg1(ro, rd);
+    else if (Param1 == 1.)
+        fcol = backg2(ro, rd);
+    else if (Param1 == 2.)
+        fcol = backg3(ro, rd);
+    else
+        fcol = backg4(ro, rd);
+	for(int i = 0; i < 30; i += 1) {
+		float z = -(float(BLADES - i) * 0.1 + 1.0);
+		vec4 pln = vec4(0.0, 0.0, -1.0, z);
+		float t = (pln.w - dot(pln.xyz, ro)) / dot(pln.xyz, rd);
+		vec2 tc = ro.xy + rd.xy * t;
+		tc.x += cos(float(i) * 3.0) * 4.0;
+		float cell = floor(tc.x);
+		tc.x = (tc.x - cell) - 0.5;
+		vec4 c = grass(tc, float(i) + cell * 10.0);
+		fcol = mix(fcol, c.rgb, step(0.0, t) * c.w)*1.05;
+	}
+	fcol = pow(fcol * 1.1, vec3(0.8));
+	vec2 q = (uv + vec2(1.0)) * 0.5;
+	fcol *= 0.2 + 0.8*pow( 16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), 0.1 );
+	gl_FragColor = vec4(fcol * 1.8 + vec3(dither()), 1.);
+}
+</script>
+    <script id="shader-3-fs" type="f">
+
+        precision highp float;
+uniform vec2 resolution;
+uniform vec2 mouse;
+uniform float time;
+uniform float Param1;
+uniform float Param2;
+uniform float Param3;
+uniform float Param4;
+     
+float hash1( vec2 p )
+{
+    p  = 50.0*fract( p*0.3183099 );
+    return fract( p.x*p.y*(p.x+p.y) );
+}
+
+float noise( in vec2 x )
+{
+    vec2 p = floor(x);
+    vec2 w = fract(x);
+    vec2 u = w*w*w*(w*(w*6.0-15.0)+10.0);
+    
+    float a = hash1(p+vec2(0,0));
+    float b = hash1(p+vec2(1,0));
+    float c = hash1(p+vec2(0,1));
+    float d = hash1(p+vec2(1,1));
+    
+    return -1.0+2.0*( a + (b-a)*u.x + (c-a)*u.y + (a - b - c + d)*u.x*u.y );
+}
+
+const mat2 m2 = mat2(  0.80,  0.60, -0.60,  0.80 );
+
+float fbm_9( in vec2 x )
+{
+    float f = 1.9;
+    float s = 0.55;
+    float a = 0.0;
+    float b = 0.5;
+    for( int i=0; i<9; i++ )
+    {
+        float n = noise(x);
+        a += b*n;
+        b *= s;
+        x = f*m2*x;
+    }
+	return a;
+}
+
+float sqr (float x) { return x*x; }
+
+vec4 middle_seeds (vec2 uv) {
+    float x = length(sin(length(uv*400.0)))+ sqr(sqr(length(sin(uv*175.0))/1.5));
+    return vec4(0.25-0.1*x, 0.2-0.05*x, 0.15-0.03*x, 1.0);
+}
+
+vec4 seeds (vec2 uv) {
+    float x = length(sin(length(uv*230.0)))
+        + sqr(sqr(length(sin(uv*137.0))/1.5));
+    return vec4(0.2-0.1*x, 0.2-0.05*x, 0.15-0.05*x, 1.0);
+}
+
+vec4 petals (vec2 uv, float offset) {
+    float x = sin(offset + atan(uv.x, uv.y)*20.0);
+    vec4 c = vec4(0.9+0.1*x, 0.825+0.175*x, 0., 1.0);
+    if (Param1 == 1.)
+        c = c.ggra;
+    else if (Param1 == 2.)
+        c = c.rbga;
+    else  if (Param1 == 3.)
+        c = c.bgra;
+    return c;
+}
+
+vec4 stem (float uvx) {
+    float x = cos(uvx*45.0);
+    return vec4(sqr(x)*0.3, 0.4+x*0.6, sqr(x)*0.3, 1.0);
+}
+
+void main(void)
+{
+    float vscale = 1.0/resolution.y;
+    vec2 uvs = gl_FragCoord.xy*vscale;
+    vec2 ctr = vec2(0.5*resolution.x/resolution.y, 0.56);
+    vec2 uv = uvs - ctr;
+
+    if (length(uv) < 0.08) {
+	    gl_FragColor = middle_seeds(uv);
+    } else if (length(uv) < 0.2+length(sin(atan(uv.x, uv.y)*40.0))*0.01*fbm_9(uv*3.0)) {
+	    gl_FragColor = seeds(uv);
+    } else if (length(uv) < length(sin(atan(uv.x, uv.y)*5.0))*0.38) {
+	    gl_FragColor = petals(uv, 0.0);
+    } else if (length(uv) < length(sin(1.0+atan(uv.x, uv.y)*5.0))*0.4) {
+	    gl_FragColor = petals(uv, 1.0);
+    } else if (length(uv) < length(sin(2.0+atan(uv.x, uv.y)*5.0))*0.42) {
+	    gl_FragColor = petals(uv, 2.0);
+    } else if (length(uv.x) < 0.03 && uv.y < 0.0) {
+	    gl_FragColor = stem(uv.x);
+    } else {
+        float x = fbm_9(-time/10.0 + uv);
+	    gl_FragColor = vec4(0.6+0.4*x, 0.7+0.3*x, 1.0 ,1.0);
+    }
+}
+            
+            </script>
+    <script id="shader-4-fs" type="f">
+        precision highp float;
+uniform vec2 resolution;
+uniform vec2 mouse;
+uniform float time;
+uniform float Param1;
+uniform float Param2;
+uniform float Param3;
+uniform float Param4;
+const float zoom = 30.0;
+
+void main( void ) {
+	vec2 pos = ( gl_FragCoord.xy / zoom );
+	for( int i = 0; i < 5; i++) {
+	pos.y = pos.y + sin(pos.x) + sin(time * 1.0);
+	pos.x = pos.x + sin(pos.y) + cos(time * 1.0);
+	}
+	vec3 col = vec3(cos(pos.x * 0.1) * 0.5, sin(pos.y * 0.1), sin(pos.x * 0.1));
+	if (Param1 == 1.)
+		col = col.bgr;
+	else if (Param1 == 2.)
+		col = col.rbg;
+	else if (Param1 == 3.)
+		col = col.grb;
+	gl_FragColor = vec4(col,1.);
+}
+</script>
+    <script id="shader-5-fs" type="f">
+        precision highp float;
+uniform vec2 resolution;
+uniform vec2 mouse;
+uniform float time;
+uniform float Param1;
+uniform float Param2;
+uniform float Param3;
+uniform float Param4;
+     
+#define iterations 10
+#define formuparam 0.53
+#define volsteps 6
+#define stepsize 0.5
+
+#define zoom   0.800
+
+#define speed  0.003
+
+#define brightness 0.002
+#define darkmatter 0.300
+#define distfading 0.730
+#define saturation 0.850
+
+void main( void )
+{
+	float tile = 0.850;
+	if (Param1 == 1.)
+		tile = .75;
+	else if (Param1 == 2.)
+		tile = .5;
+	else if (Param1 == 3.)
+		tile = .35;
+	vec2 uv=gl_FragCoord.xy/resolution.xy-.5;
+	uv.y*=resolution.y/resolution.x;
+	vec3 dir=vec3(uv*zoom,1.);
+	float t=time*speed+.5;
+
+	float a1=.5+.5/resolution.x*2.;
+	float a2=.8+.5/resolution.y*2.;
+	mat2 rot1=mat2(cos(a1),sin(a1),-sin(a1),cos(a1));
+	mat2 rot2=mat2(cos(a2),sin(a2),-sin(a2),cos(a2));
+	dir.xz*=rot1;
+	dir.xy*=rot2;
+	vec3 from=vec3(1.,.5,0.5);
+	from+=vec3(t*2.,t,-2.);
+	from.xz*=rot1;
+	from.xy*=rot2;
+
+	float s=0.1,fade=1.;
+	vec3 v=vec3(0.);
+	for (int r=0; r<6; r++) {
+		vec3 p=from+s*dir*.5;
+		p = abs(vec3(tile)-mod(p,vec3(tile*2.))); // tiling fold
+		float pa,a=pa=0.;
+		for (int i=0; i<iterations; i++) { 
+			p=abs(p)/dot(p,p)-formuparam; // the magic formula
+			a+=abs(length(p)-pa); // absolute sum of average change
+			pa=length(p);
+		}
+		float dm=max(0.,darkmatter-a*a*.001); //dark matter
+		a*=a*a; // add contrast
+		if (r>6) fade*=1.-dm; // dark matter, don't render near
+		v+=fade;
+		v+=vec3(s,s*s,s*s*s*s)*a*brightness*fade; // coloring based on distance
+		fade*=distfading; // distance fading
+		s+=stepsize;
+	}
+	v=mix(vec3(length(v)),v,saturation); //color adjust
+	gl_FragColor = vec4(v*.01,1.);	
+}           
+</script>
+    <script id="shader-6-fs" type="f">
+        precision highp float;
+uniform vec2 resolution;
+uniform vec2 mouse;
+uniform float time;
+uniform float Param1;
+uniform float Param2;
+uniform float Param3;
+uniform float Param4;
+
+vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+
+float snoise(vec3 v){
+const vec2 C = vec2(1.0/6.0, 1.0/3.0) ;
+const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+
+// First corner
+vec3 i = floor(v + dot(v, C.yyy) );
+vec3 x0 = v - i + dot(i, C.xxx) ;
+
+// Other corners
+vec3 g = step(x0.yzx, x0.xyz);
+vec3 l = 1.0 - g;
+vec3 i1 = min( g.xyz, l.zxy );
+vec3 i2 = max( g.xyz, l.zxy );
+
+// x0 = x0 - 0. + 0.0 * C
+vec3 x1 = x0 - i1 + 1.0 * C.xxx;
+vec3 x2 = x0 - i2 + 2.0 * C.xxx;
+vec3 x3 = x0 - 1. + 3.0 * C.xxx;
+
+// Permutations
+i = mod(i, 289.0 );
+vec4 p = permute( permute( permute(
+i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
++ i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
++ i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+
+// Gradients
+// ( N*N points uniformly over a square, mapped onto an octahedron.)
+float n_ = 1.0/(Param1/4.+7.); // N=7
+vec3 ns = n_ * D.wyz - D.xzx;
+
+vec4 j = p - 49.0 * floor(p * ns.z *ns.z); // mod(p,N*N)
+
+vec4 x_ = floor(j * ns.z);
+vec4 y_ = floor(j - 7.0 * x_ ); // mod(j,N)
+
+vec4 x = x_ *ns.x + ns.yyyy;
+vec4 y = y_ *ns.x + ns.yyyy;
+vec4 h = 1.0 - abs(x) - abs(y);
+
+vec4 b0 = vec4( x.xy, y.xy );
+vec4 b1 = vec4( x.zw, y.zw );
+
+vec4 s0 = floor(b0)*2.0 + 1.0;
+vec4 s1 = floor(b1)*2.0 + 1.0;
+vec4 sh = -step(h, vec4(0.0));
+
+vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+
+vec3 p0 = vec3(a0.xy,h.x);
+vec3 p1 = vec3(a0.zw,h.y);
+vec3 p2 = vec3(a1.xy,h.z);
+vec3 p3 = vec3(a1.zw,h.w);
+
+//Normalise gradients
+vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+p0 *= norm.x;p1 *= norm.y;p2 *= norm.z;p3 *= norm.w;
+
+// Mix final noise value
+vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+m = m * m;
+return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+}
+
+float quantizedSimplexNoise(vec2 coordinates, float time) {
+float layeredNoise = snoise(vec3(vec2(coordinates * 5.), time));
+layeredNoise += floor(layeredNoise * 4.) / 4.;
+return layeredNoise;
+}
+
+vec3 getColor(vec2 coordinates, float time) {
+float modCoordinatesX = fract(coordinates.x / 2.);
+vec3 color;
+color = vec3(mix(vec3(.5, .6, 5.), vec3(.0, .1, .5), (quantizedSimplexNoise(coordinates, time) + 1.) / 2.));
+return color;
+}
+
+vec2 centerCoordinates(vec2 coordinates) {
+float size = min(resolution.x, resolution.y);
+vec2 offset = .5 * vec2(1. - resolution.x / size, 1. - resolution.y / size);
+return (1.+Param4/2.) * (coordinates + offset) - 1.;
+}
+
+vec2 normalizeFragmentCoordinates(vec2 fragmentCoordinates) {
+return centerCoordinates(fragmentCoordinates / min(resolution.x, resolution.y));
+}
+
+void main(void) {
+vec2 position = ( gl_FragCoord.xy * 2.0 - resolution.xy ) / min(resolution.x,resolution.y);
+if (Param2 == 3. || Param2 == 4.) {
+if (position.x > .0)
+position.x = 2.*position.x - 1.;
+else
+position.x = -1. - position.x*2. ;
+}
+if (Param2 == 2. || Param2 == 4.) {
+if (position.y > .0)
+position.y = 2.*position.y - 1.;
+else
+position.y = -1. - position.y*2. ;
+}
+float f = (position.x);
+vec3 color = vec3(0.5 * f,0.5,0.5);
+
+color.x += sin(time * 0.2);
+color.y += cos(time * 0.7) * 1.2;
+
+float x = sin(position.x + time * 0.3);
+float y = cos(position.y + time * 0.3);
+
+vec3 col2 = vec3(vec3(x * y) + color);
+vec2 p = gl_FragCoord.xy;
+if (Param2 == 3. || Param2 == 4.) {
+if (p.x > resolution.x/2.)
+p.x = resolution.x - p.x;
+}
+if (Param2 == 2. || Param2 == 4.) {
+if (p.y > resolution.y/2.)
+p.y = resolution.y - p.y;
+}
+vec3 col = getColor(normalizeFragmentCoordinates(p/5.), time / 30.);
+if (length(col) > 4.)
+col.r = col2.x;
+if (col.b < .6) col=col2/2.; if (Param1==1.) gl_FragColor=vec4(col.bgr, 1.); else if (Param1==2.) gl_FragColor=vec4(col.brg, 1.); else if (Param1==3.) gl_FragColor=vec4(col.grb, 1.); else gl_FragColor=vec4(col, 1.0); 
+} </script>
+    <script id="shader-7-fs" type="f">
+        precision highp float;
+uniform vec2 resolution;
+uniform vec2 mouse;
+uniform float time;
+uniform float Param1;
+uniform float Param2;
+uniform float Param3;
+uniform float Param4;
+#define TOTAL_LAYERS 2.0 
+#define hue(h) clamp( abs( fract(h + vec4(3,2,1,0)/3.) * 6. - 3.) -1. , 0., 1.)
+
+float hash12(vec2 p)
+{
+vec3 p3  = fract(vec3(p.xyx) * .1031);
+p3 += dot(p3, p3.yzx + 33.33);
+return fract((p3.x + p3.y) * p3.z);
+}
+
+
+void main()
+{ 
+float t = time/4.;
+vec2 uv = (gl_FragCoord.xy) / resolution.x + vec2(100.);                              
+vec3 col = vec3(0.); 
+for(float layer =1.; layer <= TOTAL_LAYERS; layer++ ) {
+    float SIZE = (17. - layer) * .5;
+    vec2 luv = uv * SIZE;
+    vec2 id = floor(luv);
+    luv = fract(luv) - 0.5;     
+    for(float y =- 1.0; y <= 1.0; y++ ) {
+	for(float x =- 1.0; x <= 1.0; x++ ) {
+	    vec2 rid = id - vec2(x, y);
+	    float rFactor1 = hash12(rid + 542. * layer);
+	    float rFactor2 = hash12(rid + 159. * layer);              
+	    float t = t*5.5/(10. + layer*5./rFactor1) + 100. * rFactor2;
+	    vec2 ruv = luv + vec2(x, y) + vec2(sin(t*.1 + t + rFactor1), sin(t*.2 + t*.9 + rFactor2));           
+	    float l = length(ruv);            
+	    float ld = length(ruv - vec2(.075));  
+	    float SF = 1./min(resolution.x,resolution.y)*SIZE*(layer*2.);
+	    float d = smoothstep(SF,-SF,l-(.125 + hash12(rid + 700.)*.25));      
+	    float colFactor = hash12(rid + 500.) + t*.1;
+	    vec3 iCol = hue(colFactor).rgb * d * (.7 + smoothstep(.1,.5,ld)*1.);
+	    col = col + iCol*(.25 + (1. - layer/TOTAL_LAYERS)*.2); 
+	}
+    }  
+    if (Param1 == 1.) {
+	col.b += col.r + col.g;
+	col.g = 0.;
+    } else if (Param1 == 2.) {
+	col.b = 0.;
+    } else if (Param1 == 0.) {
+	col.r += col.b + col.g;
+	col.r /=3.;
+	col.g = col.r; col.b = col.r;
+    } 
+
+gl_FragColor = vec4(col, 1.0);
+}
+}
+</script>
+
+    <script id="shader-8-fs" type="f">
+
+        precision highp float;
+uniform vec2 resolution;
+uniform vec2 mouse;
+uniform float time;
+uniform float Param1;
+uniform float Param2;
+uniform float Param3;
+uniform float Param4;
+void main( void ) {
+vec2 position = ( gl_FragCoord.xy / resolution.xy );
+position.y *= dot(position,position);
+float color1 = 0.;
+float color2 = 0.;
+float color3 = 0.;
+float color4 = 0.;
+float color5 = 0.;
+float color6 = 0.;
+float t = time/8.;
+float equation = .0;
+float equation2 = .0;
+float size = 4.0 * sin(t)*0.4 + 4.0;
+float posx = size - position.x * size * 2.0;
+float posy = size - position.y * size * 2.0;
+float moux = mouse.x - 0.5;
+float mouy = mouse.y - 0.5;
+float wavy = 0.0;
+wavy = sin((posx+posy)*cos(posx-t)-sin(posy-t)-cos(posy-t));
+equation = posx+posy + wavy;
+equation2 = equation;
+color1 = 0.0 - equation;
+color3 = equation;
+if (equation > 3.0) {
+    color1 = 0.5;
+    color2 = 0.75;
+    color3 = 0.75;
+} else if (equation > 2.0) {
+    color1 = equation - 2.0;
+    color2 = 1.0;
+} else if (equation > 1.0) {
+    color2 = equation - 1.0;
+};
+if (equation < -3.0) {
+    color3 = 0.5;
+    color2 = 0.75;
+    color1 = 0.75;
+} else if (equation < -2.0) {
+    color3 = 0.0 - equation - 2.0;
+    color2 = 1.0;
+} else if (equation < -1.0) {
+    color2 = 0.0 - equation - 1.0;
+}
+color4 = 0.0 - equation2;
+color6 = equation2;
+if (equation2 > 3.0) {
+    color4 = 0.5;
+    color5 = 0.75;
+    color6 = 0.75;
+} else if (equation2 > 2.0) {
+    color4 = equation2 - 2.0;
+    color5 = 1.0;
+} else if (equation2 > 1.0) {
+    color5 = equation2 - 1.0;
+}
+if (equation2 < -3.0) {
+    color6 = 0.5;
+    color5 = 0.75;
+    color4 = 0.75;
+} else if (equation2 < -2.0) {
+    color6 = 0.0 - equation2 - 2.0;
+    color5 = 1.0;
+} else if (equation2 < -1.0) {
+    color5 = 0.0 - equation2 - 1.0;
+};
+vec3 col = vec3((color1+color4)/4.0,(color2+color5)/21.0, (color3+color6)/23.0 );
+if (Param1 == 1.) {
+   col.b += col.r + col.g;
+   col.g = 0.;
+} else if (Param1 == 2.) {
+   col.g += col.r + col.g;
+   col.g /=3.;
+} else if (Param1 == 3.) {
+   col.g = col.r; 
+   col.b = col.r;
+} 
+gl_FragColor = vec4( col, 1.0 );
+} 
+        </script>
+
+    <script id="shader-vs" type="v">
+        attribute vec3 aVertexPosition;attribute vec2 aTextureCoord;uniform mat4 uMVMatrix;uniform mat4 uPMatrix;void main(void){gl_Position=uPMatrix*uMVMatrix*vec4(aVertexPosition,1.);}
+    </script>
+</head>
+
+<body>
+    <div id="container">
+        <div id="main">
+            <canvas id="webgl-canvas" style="border: none;" width="500" height="500"></canvas>
+            <splash class="btn" enabled></splash>
+            <mbutton class="btn" enabled></mbutton>
+            <mbutton1 class="btn" enabled></mbutton1>
+            <mbutton2 class="btn" enabled></mbutton2>
+            <mbutton3 class="btn" enabled></mbutton3>
+            <mbutton4 class="btn" enabled></mbutton4>
+            <mbutton5 class="btn" enabled></mbutton5>
+            <mbutton6 class="btn" enabled></mbutton6>
+            <mbutton7 class="btn" enabled></mbutton7>
+            <button class="btn" enabled></button>
+            <button1 class="btn" enabled></button1>
+            <button2 class="btn" enabled></button2>
+            <buttonl class="btn" enabled></buttonl>
+            <buttonr class="btn" enabled></buttonr>
+            <particles class="canvas" enabled></particles>
+            <crosshairs class="btn" enabled></crosshairs>
+            <audio id="audio" autobuffer="autobuffer" preload="auto">
+                <source src="snd.mp3" type="audio/mp3" /></audio>
+        </div>
+    </div>
+</body>
+
+</html>

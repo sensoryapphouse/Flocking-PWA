@@ -1,0 +1,439 @@
+html,
+div,
+body,
+canvas {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+#body {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 0;
+    -webkit-app-region: drag;
+    background: black;
+    overflow: hidden;
+    background-color: blue;
+    //  filter: sepia(1) hue-rotate(230deg) saturate(2);
+    z-index: 998;
+}
+
+#container {
+    display: -webkit-flex;
+    -webkit-flex-direction: column;
+    text-align: center;
+    z-index: 998;
+    //  filter: sepia(1) hue-rotate(230deg) saturate(2); // set mono colour green
+}
+
+
+canvas {
+    width: 100vw;
+    height: 100vh;
+    -webkit-transition: 1s opacity;
+    background: black;
+    background-color: transparent;
+    background-size: 100vw 100vh;
+    z-index: 999;
+}
+
+
+splash {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/splash.jpg);
+    background-size: 100vw 100vh;
+    background-color: black;
+    opacity: 1.0;
+    z-index: 1002;
+    -webkit-app-region: no-drag;
+}
+
+crosshairs {
+    position: absolute;
+    top: 40vw;
+    left: 45vh;
+    width: 10vw;
+    height: 20vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/crosshairs.png);
+    background-size: 10vw 20vh;
+    background-color: transparent;
+    opacity: 1;
+    z-index: 1116;
+    pointer-events: none;
+    -webkit-app-region: no-drag;
+}
+
+particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background-size: 100vw 100vh;
+
+    opacity: 1.;
+    z-index: 999;
+    -webkit-app-region: no-drag;
+}
+
+
+buttonl {
+    position: absolute;
+    top: 2vh;
+    left: 2vw;
+    width: 8vh;
+    height: 8vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/home.png);
+    background-size: 8vh 8vh;
+    opacity: 1.;
+    z-index: 1000;
+    -webkit-app-region: no-drag;
+}
+
+buttonl:hover {
+    opacity: 1.0;
+}
+
+buttonl:active {
+    opacity: 0.4;
+}
+
+buttonr {
+    position: absolute;
+    top: 2vh;
+    left: 90vw;
+    width: 8vh;
+    height: 8vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/buttonr.png);
+    background-size: 8vh 8vh;
+    opacity: 0.8;
+    z-index: 1000;
+    -webkit-app-region: no-drag;
+}
+
+buttonr:hover {
+    opacity: 1.0;
+}
+
+buttonr:active {
+    opacity: 0.4;
+}
+
+button {
+    position: absolute;
+    top: 90vh;
+    left: 15vw;
+    width: 8vh;
+    height: 8vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/button.png);
+    background-size: 8vh 8vh;
+    opacity: 0.8;
+    z-index: 1000;
+    -webkit-app-region: no-drag;
+}
+
+button:hover {
+    background-size: 8vh 8vh;
+    opacity: 1.0;
+}
+
+button:active {
+    background-size: 8vh 8vh;
+    opacity: 0.2;
+    left: 15vw;
+    top: 90vh;
+}
+
+button1 {
+    position: absolute;
+    top: 90vh;
+    left: 46vw;
+    width: 8vh;
+    height: 8vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/button.png);
+    background-size: 8vh 8vh;
+    opacity: 0.;
+    z-index: 1000;
+    -webkit-app-region: no-drag;
+}
+
+button1:hover {
+    background-size: 8vh 8vh;
+    opacity: 1.0;
+}
+
+button1:active {
+    background-size: 8vh 8vh;
+    opacity: 0.2;
+}
+
+button2 {
+    position: absolute;
+    top: 90vh;
+    left: 77vw;
+    width: 8vh;
+    height: 8vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/button.png);
+    background-size: 8vh 8vh;
+    opacity: 0.8;
+    z-index: 1000;
+    -webkit-app-region: no-drag;
+}
+
+button2:hover {
+    //  background-size: 8vh 8vh;
+    opacity: 1.0;
+}
+
+button2:active {
+    //  background-size: 8vh 8vh;
+    opacity: 0.2;
+}
+
+button3 {
+    position: absolute;
+    top: 90vh;
+    left: 75vw;
+    width: 8vh;
+    height: 8vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/button.png);
+    background-size: 8vh 8vh;
+    opacity: 0.;
+    z-index: 1000;
+    -webkit-app-region: no-drag;
+}
+
+button3:hover {
+    background-size: 8vh 8vh;
+    opacity: .0;
+}
+
+button3:active {
+    background-size: 8vh 8vh;
+    opacity: 0.s;
+}
+
+
+mbutton {
+    position: absolute;
+    top: 21vh;
+    left: 17.35vw;
+    width: 15vw;
+    height: 19vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/1.png);
+    background-color: #FFFFFF;
+    background-size: 15vw 19vh;
+    opacity: 0.7;
+    z-index: 1010;
+    -webkit-app-region: no-drag;
+}
+
+mbutton:hover {
+    opacity: 1.0;
+}
+
+mbutton1 {
+    position: absolute;
+    top: 21vh;
+    left: 36.67vw;
+    width: 15vw;
+    height: 19vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/2.png);
+    background-color: #FFFFFF;
+    background-size: 15vw 19vh;
+    opacity: 0.7;
+    z-index: 1010;
+    -webkit-app-region: no-drag;
+}
+
+mbutton1:hover {
+
+    opacity: 1.0;
+}
+
+mbutton2 {
+    position: absolute;
+    top: 21vh;
+    left: 55.7vw;
+    width: 15vw;
+    height: 19vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/3.png);
+    background-color: #FFFFFF;
+    background-size: 15vw 19vh;
+
+    opacity: 0.7;
+    z-index: 1010;
+    -webkit-app-region: no-drag;
+}
+
+mbutton2:hover {
+    opacity: 1.0;
+}
+
+
+mbutton3 {
+    position: absolute;
+    top: 21vh;
+    left: 75.15vw;
+    width: 15vw;
+    height: 19vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/4.png);
+    background-color: #FFFFFF;
+    background-size: 15vw 19vh;
+    opacity: 0.7;
+    z-index: 1010;
+    -webkit-app-region: no-drag;
+}
+
+mbutton3:hover {
+    opacity: 1.0;
+}
+
+mbutton4 {
+    position: absolute;
+    top: 55.2vh;
+    left: 17.35vw;
+    width: 15vw;
+    height: 19vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/5.png);
+    background-color: #FFFFFF;
+    background-size: 15vw 19vh;
+    opacity: 0.7;
+    z-index: 1010;
+    -webkit-app-region: no-drag;
+}
+
+mbutton4:hover {
+    opacity: 1.0;
+}
+
+mbutton5 {
+    position: absolute;
+    top: 55.2vh;
+    left: 36.67vw;
+    width: 15vw;
+    height: 19vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/6.png);
+    background-color: #FFFFFF;
+    background-size: 15vw 19vh;
+    opacity: 0.7;
+    z-index: 1010;
+    -webkit-app-region: no-drag;
+}
+
+mbutton5:hover {
+    opacity: 1.0;
+}
+
+mbutton6 {
+    position: absolute;
+    top: 55.2vh;
+    left: 55.7vw;
+    width: 15vw;
+    height: 19vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/7.png);
+    background-color: #FFFFFF;
+    background-size: 15vw 19vh;
+    opacity: 0.7;
+    z-index: 1010;
+    -webkit-app-region: no-drag;
+}
+
+mbutton6:hover {
+    opacity: 1.0;
+}
+
+mbutton7 {
+    position: absolute;
+    top: 55.2vh;
+    left: 75.15vw;
+    width: 15vw;
+    height: 19vh;
+    border-radius: 0vh;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: url(../images/8.png);
+    background-color: #FFFFFF;
+    background-size: 15vw 19vh;
+    opacity: 0.7;
+    z-index: 1010;
+    -webkit-app-region: no-drag;
+}
+
+mbutton7:hover {
+    opacity: 1.0;
+}
